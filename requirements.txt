@@ -1,0 +1,6 @@
+# Runtime deps. Runs fully offline by default (deterministic mock LLM, no keys).
+kafka-python>=2.2,<3          # pure-Python Kafka client (producer/consumer/admin)
+fastapi>=0.115,<1            # live dashboard API
+uvicorn[standard]>=0.30,<1   # ASGI server for the dashboard
+httpx>=0.27,<1              # direct HTTP for real LLM providers (no vendor SDKs)
+python-dotenv>=1,<2         # load settings from a local .env
