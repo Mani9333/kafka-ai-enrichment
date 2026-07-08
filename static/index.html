@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>kafka-ai-enrichment · live</title>
+<style>
+  :root { --bg:#0f1220; --card:#181c2e; --fg:#e7e9f3; --muted:#9aa0b5; --accent:#7c9cff; --border:#2a2f47;
+          --pos:#4ade80; --neg:#f87171; --neu:#fbbf24; --dlq:#fb7185; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--fg); }
+  .wrap { max-width:1120px; margin:0 auto; padding:28px 20px 80px; }
+  header { display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  h1 { font-size:20px; margin:0; letter-spacing:.2px; }
+  h1 .dim { color:var(--muted); font-weight:500; }
+  .badge { font-size:12px; color:var(--muted); }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:middle; background:var(--neg); }
+  .dot.ok { background:var(--pos); }
+  .cards { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin:22px 0 26px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px 18px; }
+  .card .k { font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); }
+  .card .v { font-size:26px; font-weight:700; margin-top:6px; font-variant-numeric:tabular-nums; }
+  .card.dlq .v { color:var(--dlq); }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin:26px 0 10px; }
+  table { width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  th, td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); }
+  tr:last-child td { border-bottom:0; }
+  td.id { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--accent); white-space:nowrap; }
+  .pill { display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:600; }
+  .s-positive { background:rgba(74,222,128,.15); color:var(--pos); }
+  .s-negative { background:rgba(248,113,113,.15); color:var(--neg); }
+  .s-neutral  { background:rgba(251,191,36,.15); color:var(--neu); }
+  .prio { font-size:12px; color:var(--muted); }
+  .prio.high { color:var(--neg); font-weight:600; }
+  .ent { color:var(--muted); font-size:12px; }
+  .reason { color:var(--dlq); font-weight:600; }
+  .empty { color:var(--muted); padding:14px 12px; }
+  .muted { color:var(--muted); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>kafka-ai-enrichment <span class="dim">· live dashboard</span></h1>
+      <span class="badge" id="badge">connecting…</span>
+    </header>
+
+    <div class="cards">
+      <div class="card"><div class="k">Processed</div><div class="v" id="m-processed">–</div></div>
+      <div class="card"><div class="k">Enriched</div><div class="v" id="m-enriched">–</div></div>
+      <div class="card dlq"><div class="k">Dead-letter</div><div class="v" id="m-dlq">–</div></div>
+      <div class="card"><div class="k">Throughput /s</div><div class="v" id="m-tput">–</div></div>
+      <div class="card"><div class="k">Consumer lag</div><div class="v" id="m-lag">–</div></div>
+    </div>
+
+    <h2>Latest enriched events (events.out)</h2>
+    <table>
+      <thead><tr><th>Event</th><th>Type</th><th>Sentiment</th><th>Category</th><th>Priority</th><th>Entities</th><th>Summary</th><th>ms</th></tr></thead>
+      <tbody id="rows"><tr><td class="empty" colspan="8">No enriched events yet — run <span class="muted">make produce</span> then <span class="muted">make consume</span>.</td></tr></tbody>
+    </table>
+
+    <h2>Dead-letter queue (events.dlq)</h2>
+    <table>
+      <thead><tr><th>Event</th><th>Reason</th><th>Error</th><th>When</th></tr></thead>
+      <tbody id="dlq"><tr><td class="empty" colspan="4">No dead-lettered events.</td></tr></tbody>
+    </table>
+  </div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+function sentimentPill(s) {
+  const cls = s === "positive" ? "s-positive" : s === "negative" ? "s-negative" : "s-neutral";
+  return `<span class="pill ${cls}">${esc(s || "?")}</span>`;
+}
+
+function renderRows(recent) {
+  if (!recent || !recent.length) {
+    $("rows").innerHTML = '<tr><td class="empty" colspan="8">No enriched events yet — run <span class="muted">make produce</span> then <span class="muted">make consume</span>.</td></tr>';
+    return;
+  }
+  $("rows").innerHTML = recent.map(e => `
+    <tr>
+      <td class="id">${esc(e.id)}</td>
+      <td class="muted">${esc(e.type)}</td>
+      <td>${sentimentPill(e.sentiment)}</td>
+      <td>${esc(e.category)}</td>
+      <td class="prio ${e.priority === "high" ? "high" : ""}">${esc(e.priority)}</td>
+      <td class="ent">${(e.entities || []).map(esc).join(", ")}</td>
+      <td>${esc(e.summary)}</td>
+      <td class="muted">${esc(e.latency_ms)}</td>
+    </tr>`).join("");
+}
+
+function renderDlq(rows) {
+  if (!rows || !rows.length) {
+    $("dlq").innerHTML = '<tr><td class="empty" colspan="4">No dead-lettered events.</td></tr>';
+    return;
+  }
+  $("dlq").innerHTML = rows.map(d => `
+    <tr>
+      <td class="id">${esc(d.event_id)}</td>
+      <td class="reason">${esc(d.reason)}</td>
+      <td class="muted">${esc(d.error)}</td>
+      <td class="muted">${esc((d.failed_at || "").replace("T", " ").replace("Z", ""))}</td>
+    </tr>`).join("");
+}
+
+async function refresh() {
+  try {
+    const r = await fetch("/api/state");
+    const s = await r.json();
+    const ok = s.connected;
+    $("badge").innerHTML = `<span class="dot ${ok ? "ok" : ""}"></span>broker ${esc(s.broker)} · group ${esc(s.group)} · ${ok ? "connected" : "waiting for Kafka"}`;
+    $("m-processed").textContent = s.processed ?? "–";
+    $("m-enriched").textContent = s.enriched ?? "–";
+    $("m-dlq").textContent = s.errors ?? "–";
+    $("m-tput").textContent = (s.throughput_per_s ?? 0).toFixed(1);
+    $("m-lag").textContent = s.lag == null ? "–" : s.lag;
+    renderRows(s.recent);
+    renderDlq(s.recent_dlq);
+  } catch (err) {
+    $("badge").innerHTML = `<span class="dot"></span>dashboard offline`;
+  }
+}
+
+refresh();
+setInterval(refresh, 1500);
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{"id": "evt-001", "type": "support_message", "customer_id": "cust-4021", "text": "My order #100582 arrived cracked and the screen is broken. I need a refund ASAP."}
+{"id": "evt-002", "type": "product_review", "customer_id": "cust-1180", "text": "Absolutely love the Sonos Roam. Sound quality is amazing and setup was fast."}
+{"id": "evt-003", "type": "support_message", "customer_id": "cust-7734", "text": "I was charged twice for my subscription this month. Please refund the extra $14.99."}
+{"id": "evt-004", "type": "support_message", "customer_id": "cust-2255", "text": "Where is my package? Tracking says delivered but I never received order ORD-77213."}
+{"id": "evt-005", "type": "product_review", "customer_id": "cust-9910", "text": "The Anker charger works great and charges my phone super fast. Highly recommend."}
+{"id": "evt-006", "type": "support_message", "customer_id": "cust-3140", "text": "The app keeps crashing every time I try to log in on my Pixel 8."}
+{"id": "evt-007", "type": "support_message", "customer_id": "cust-6621", "text": "Please cancel my account and delete my profile. You can reach me at jane.doe@example.com."}
+{"id": "evt-008", "type": "product_review", "customer_id": "cust-5567", "text": "Decent product, but shipping took two weeks longer than promised. Pretty disappointed."}
+{"id": "evt-009", "type": "support_message", "customer_id": "cust-8802", "text": "Thank you for the quick help yesterday. The issue is fully resolved and works perfectly."}
+{"id": "evt-010", "type": "product_review", "customer_id": "cust-4478", "text": "The blender stopped working after three days. Very disappointed with the build quality."}
+{"id": "evt-011", "type": "support_message", "customer_id": "cust-3391", "text": "Do you ship to Canada? I am considering the Dyson V15 for my apartment."}
+{"id": "evt-012", "type": "support_message", "customer_id": "cust-0000", "text": "   "}
